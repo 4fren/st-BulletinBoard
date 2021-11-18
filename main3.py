@@ -107,6 +107,7 @@ if not soup.find(id='custom-js'):
     index_path.write_text(str(soup))
 
 def main():
+    print(index_path)
     pageFlag = cache_list_pageFlag()
 
     selectedThread = cache_list_thread()
