@@ -7,8 +7,6 @@ from google.oauth2 import service_account
 from gsheetsdb import connect
 from oauth2client.service_account import ServiceAccountCredentials
 import gspread
-from bs4 import BeautifulSoup
-import pathlib
 
 # Create a connection object.
 credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"],scopes=["https://www.googleapis.com/auth/spreadsheets"])
@@ -81,31 +79,22 @@ def word_list():
         lst.append(wordList[j])
     return lst
 
-#Add this in your streamlit app.py
-content = 'async src="https://www.googletagmanager.com/gtag/js?id=UA-196440682-1"'
-
-# Insert the script in the head tag of the static template inside your virtual environement
-print(pathlib.Path(st.__file__).parent)
-index_path = pathlib.Path(st.__file__).parent / "static" / "index.html"
-soup = BeautifulSoup(index_path.read_text(), features="lxml")
-if not soup.find(src="https://www.googletagmanager.com/gtag/js?id=UA-196440682-1"):
-    script_tag = soup.new_tag("script", src="https://www.googletagmanager.com/gtag/js?id=UA-196440682-1")
-    soup.head.insert(0,script_tag)
-    index_path.write_text(str(soup))
-
-GA_JS = """
+google_analytics_js = """
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script
+        async
+        src="https://www.googletagmanager.com/gtag/js?id=UA-196440682-1"
+        ></script>
+        <script>
         window.dataLayer = window.dataLayer || [];
         function gtag() {
             dataLayer.push(arguments);
         }
         gtag("js", new Date());
-        gtag("config", "UA-196440682-1");"""
-
-if not soup.find(id='custom-js'):
-    script_tag = soup.new_tag("script", id='custom-js')
-    script_tag.string = GA_JS
-    soup.head.insert(1,script_tag)
-    index_path.write_text(str(soup))
+        gtag("config", "UA-196440682-1");
+        </script>
+        """
+st.components.v1.html(google_analytics_js)
 
 def main():
     
