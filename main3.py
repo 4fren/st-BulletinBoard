@@ -91,6 +91,7 @@ if not soup.find(src="https://www.googletagmanager.com/gtag/js?id=UA-196440682-1
     script_tag = soup.new_tag("script", src="https://www.googletagmanager.com/gtag/js?id=UA-196440682-1")
     soup.head.insert(0,script_tag)
     index_path.write_text(str(soup))
+    print(1)
 
 GA_JS = """
         window.dataLayer = window.dataLayer || [];
@@ -105,6 +106,7 @@ if not soup.find(id='custom-js'):
     script_tag.string = GA_JS
     soup.head.insert(1,script_tag)
     index_path.write_text(str(soup))
+    print(1)
 
 def main():
     pageFlag = cache_list_pageFlag()
