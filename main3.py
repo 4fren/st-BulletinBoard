@@ -85,13 +85,13 @@ def word_list():
 content = 'async src="https://www.googletagmanager.com/gtag/js?id=UA-196440682-1"'
 
 # Insert the script in the head tag of the static template inside your virtual environement
+print(pathlib.Path(st.__file__).parent)
 index_path = pathlib.Path(st.__file__).parent / "static" / "index.html"
 soup = BeautifulSoup(index_path.read_text(), features="lxml")
 if not soup.find(src="https://www.googletagmanager.com/gtag/js?id=UA-196440682-1"):
     script_tag = soup.new_tag("script", src="https://www.googletagmanager.com/gtag/js?id=UA-196440682-1")
     soup.head.insert(0,script_tag)
     index_path.write_text(str(soup))
-print(index_path)
 
 GA_JS = """
         window.dataLayer = window.dataLayer || [];
