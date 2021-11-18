@@ -79,23 +79,6 @@ def word_list():
         lst.append(wordList[j])
     return lst
 
-google_analytics_js = """
-    <!-- Global site tag (gtag.js) - Google Analytics -->
-        <script
-        async
-        src="https://www.googletagmanager.com/gtag/js?id=UA-196440682-1"
-        ></script>
-        <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() {
-            dataLayer.push(arguments);
-        }
-        gtag("js", new Date());
-        gtag("config", "UA-196440682-1");
-        </script>
-        """
-st.components.v1.html(google_analytics_js)
-
 def main():
     
     pageFlag = cache_list_pageFlag()
