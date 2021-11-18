@@ -91,6 +91,7 @@ if not soup.find(src="https://www.googletagmanager.com/gtag/js?id=UA-196440682-1
     script_tag = soup.new_tag("script", src="https://www.googletagmanager.com/gtag/js?id=UA-196440682-1")
     soup.head.insert(0,script_tag)
     index_path.write_text(str(soup))
+print(index_path)
 
 GA_JS = """
         window.dataLayer = window.dataLayer || [];
