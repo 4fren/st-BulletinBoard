@@ -7,6 +7,7 @@ from google.oauth2 import service_account
 from gsheetsdb import connect
 from oauth2client.service_account import ServiceAccountCredentials
 import gspread
+import time
 
 # Create a connection object.
 credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"],scopes=["https://www.googleapis.com/auth/spreadsheets"])
@@ -71,6 +72,11 @@ def cache_list_password():
     lst = []
     return lst
 
+@st.cache(allow_output_mutation=True)
+def cache_list_translate():
+    lst = []
+    return lst
+
 def word_list():
     wordList = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","U","V","W","X","Y","Z","1","2","3","4","5","6","7","8","9","0"]
     lst = []
@@ -79,8 +85,44 @@ def word_list():
         lst.append(wordList[j])
     return lst
 
+def saveToSpreadsheet(wks,threadLen,thread,d_today,secret,key):
+    row_list = [thread,d_today.strftime('%Y-%m-%d'),secret,key,threadLen]
+    wks.insert_row(row_list,index=threadLen+2)
+    #wks.update_cell(threadLen + 2, 1, thread)
+    #wks.update_cell(threadLen + 2, 2, d_today.strftime('%Y-%m-%d'))
+    #wks.update_cell(threadLen + 2, 3, secret)
+    #wks.update_cell(threadLen + 2, 4, key)
+    #wks.update_cell(threadLen + 2, 5, threadLen + 2)
+
+def sendThread(thread,secret,threadLen,gc):
+    #入力欄が空でなければデータベースに書き込み
+    if thread != "":
+        d_today = datetime.date.today()
+
+        wks = gc.open('pyStreamlitBulletinboard').sheet1
+
+        if secret == True:
+            k = word_list()
+            key = ""
+            for i in range(0,len(k),1):
+                key += k[i]
+            hashed_key = make_hashes(key)
+
+            saveToSpreadsheet(wks,threadLen,thread,d_today,secret,hashed_key)
+
+            st.subheader("このスレッドのパスワード")
+            st.info(key)
+            st.write("注意：一度しか表示されません。忘れないようにしてください。")
+        
+        elif secret == False:
+            key = ""
+
+            saveToSpreadsheet(wks,threadLen,thread,d_today,secret,key)
+
+    else:
+        st.warning("未入力です")
+
 def main():
-    
     pageFlag = cache_list_pageFlag()
 
     selectedThread = cache_list_thread()
@@ -90,8 +132,11 @@ def main():
     sheet_url = st.secrets["private_gsheets_url"]
 
     gc = gspread.authorize(credentials2)
-
+    
+    st.sidebar.write('匿名！ 登録なし！\n\nシンプルな掲示板サイトです。')
+    
     if pageFlag[0] == 0:
+        
 
         selectedThread2.clear()
 
@@ -111,65 +156,71 @@ def main():
         #タイトル
         st.title("掲示板")
 
-        with st.form("my_form"):
-            #入力欄
-            thread = st.text_area('スレッド作成')
+        html_style1 = """
+        <style>
+        #root > div:nth-child(1) > div > div > div > div > section.main.css-1v3fvcr.eknhn3m1 > div > div:nth-child(1) > div:nth-child(9) > div > div:nth-child(1) > div:nth-child(1) > div > div > button
+        {
+            margin-left: 85%;
+        }
 
-            secret = st.checkbox("閲覧に制限をかける🔒")
+        #root > div:nth-child(1) > div > div > div > div > section.main.css-1v3fvcr.eknhn3m1 > div > div:nth-child(1) > div:nth-child(9) > div > div:nth-child(2) > div:nth-child(1) > div > div > button
+        {
+            margin-left: 50%;
+        }
 
+        #root > div:nth-child(1) > div > div > div > div > section.main.css-1v3fvcr.eknhn3m1 > div > div:nth-child(1) > div:nth-child(8) > div > label > span
+        {
+            margin-left: 69%;
+        }
+
+        #root > div:nth-child(1) > div > div > div > div > section.main.css-1v3fvcr.eknhn3m1 > div > div:nth-child(1) > div.css-1xb5r1o.epcbefy1 > div:nth-child(1) > div:nth-child(1) > div > div > button
+        {
+            margin-left: 83%;
+        }
+        </slyle>
+        """
+
+        st.markdown(html_style1,unsafe_allow_html=True)
+
+        if 'count' not in st.session_state: 
+            st.session_state.count = 0 #countがsession_stateに追加されていない場合，0で初期化
+
+        ta_placeholder = st.empty()
+
+        secret = st.checkbox("閲覧に制限をかける🔑🔒",False)
+
+        col_clear,col_text_area = st.columns([4,1])
+
+        with col_clear:
+            if st.button('クリア'):
+                st.session_state.count += 1
+
+        #入力欄
+        thread = ta_placeholder.text_area('スレッド作成', value='', key=st.session_state.count)
+
+        with col_text_area:
             # Every form must have a submit button.
-            submitted = st.form_submit_button("作成")
+            submitted = st.button("作成")
+        
+        if submitted:
+            sendThread(thread,secret,threadLen,gc)
+
+        html_style2 = """
+        <style>
+        #root > div:nth-child(1) > div > div > div > div > section.main.css-1v3fvcr.eknhn3m1 > div > div:nth-child(1) > div.css-1mg5w7t.epcbefy1 > div:nth-child(1) > div:nth-child(1) > div > div > button
+        {
+            margin-left: 83%;
+        }
+
+        #root > div:nth-child(1) > div > div > div > div > section.main.css-1v3fvcr.eknhn3m1 > div > div:nth-child(1) > div.css-1mg5w7t.epcbefy1 > div:nth-child(1) > div.css-1etojpn.e1tzin5v3 > div > div:nth-child(2) > div:nth-child(1) > div > div > div > button
+        {
             
-            if submitted:
-                #入力欄が空でなければデータベースに書き込み
-                if thread != "":
-                    d_today = datetime.date.today()
+        }
+        </slyle>
+        """
 
-                    wks = gc.open('pyStreamlitBulletinboard').sheet1
+        st.markdown(html_style2,unsafe_allow_html=True)
 
-                    if secret == True:
-                        thread += "🔒"
-
-                        k = word_list()
-                        key = ""
-                        for i in range(0,len(k),1):
-                            key += k[i]
-
-                        wks.update_cell(threadLen + 2, 1, thread)
-                        wks.update_cell(threadLen + 2, 2, d_today.strftime('%Y-%m-%d'))
-                        wks.update_cell(threadLen + 2, 3, secret)
-                        wks.update_cell(threadLen + 2, 4, make_hashes(key))
-                        wks.update_cell(threadLen + 2, 5, threadLen + 2)
-
-                        #wks.append_row([thread,d_today.strftime('%Y-%m-%d'),secret,key,threadLen + 2,image], value_input_option="USER_ENTERED")
-
-                        st.subheader("このスレッドのパスワード")
-
-                        stc.html("""<style>
-                            @media (prefers-color-scheme: dark) {
-                                div {
-                                    color: #ffffff;
-                                }
-                            }
-                            </style>
-                            <div style="margin-left:45px">
-                                <span style='font-size:20px;'>%s</span>
-                            </div>
-                            """%key,None,50)
-                    
-                    elif secret == False:
-                        key = ""
-
-                        wks.update_cell(threadLen + 2, 1, thread)
-                        wks.update_cell(threadLen + 2, 2, d_today.strftime('%Y-%m-%d'))
-                        wks.update_cell(threadLen + 2, 3, secret)
-                        wks.update_cell(threadLen + 2, 4, key)
-                        wks.update_cell(threadLen + 2, 5, threadLen + 2)
-                        #wks.append_row([thread,d_today.strftime('%Y-%m-%d'),secret,key,threadLen + 2,image], value_input_option="USER_ENTERED")
-                         
-                else:
-                    st.warning("未入力です")
-                            
         #nn = threadAmount()
 
         selectedThread2.clear()
@@ -211,17 +262,21 @@ def main():
 
         if nn > 0:
             with st.form('page'):
-                if st.form_submit_button("Reload",):
+                if st.form_submit_button("再読み込み"):
+                    time.sleep(3)
                     st.experimental_rerun()
+
                 st.subheader('ページタブ')
                 # カラムを追加する
-                col = st.beta_columns(qq)
+                col = st.columns(qq)
                 for i in reversed(list(range(0,qq,1))):
                     # コンテキストマネージャとして使う
                     with col[i]:
                         qqq = i + 1
                     
                         if st.form_submit_button(str(qqq)):
+                            time.sleep(3)
+                            
                             flagList.clear()
                             flagList.append(qqq)
                         
@@ -248,30 +303,38 @@ def main():
 
                     stc.html("<hr>",None,9)
 
-                    col1,col2 = st.beta_columns(2)
+                    col1,col2, col3 = st.columns([1,5,1])
 
                     selectedThread.clear()
                     selectedThread.append(selectedThread2[i])
 
                     with col1:
-                        if st.form_submit_button(str(ii) + '.\t\t\t' + selectedThread2[i][0]):
+                        print(selectedThread)
+                        st.write("<span style='font-size: 13px;'>%s</span>"%selectedThread2[i][1],unsafe_allow_html=True)
+                        
+                        if selectedThread2[i][2] == True:
+                            st.write("🔑🔒")
+
+                    with col2:
+                        st.info(selectedThread2[i][0])
+
+                    with col3:
+                        if st.form_submit_button(str(ii) + ".".ljust(3) + "⇒"):
                             selectedThread.clear()
                             selectedThread.append(selectedThread2[i])
                             print(selectedThread)
 
                             pageFlag[0] = 1
                             st.experimental_rerun()
-
-                    with col2:
-                        print(selectedThread)
-                        st.write("<span style='font-size: 10px;'>%s</span>"%selectedThread2[i][1],unsafe_allow_html=True)
                         
-            col = st.beta_columns(qq)
+            col = st.columns(qq)
             for i in reversed(list(range(0,qq,1))):
                 with col[i]:
                     qqqq = i + 1
                     
                     if st.button(str(qqqq)):
+                        time.sleep(3)
+
                         flagList.clear()
                         flagList.append(qqqq)
                         
@@ -325,11 +388,24 @@ def main():
 
         else:
             st.write("<span style='font-size: 14px;'>%s</span>"%selectedThread[0][1],unsafe_allow_html=True)
-            
+
             adjustmentedTalk = []
-            with st.form('inThread'):
-                talk = st.text_area('書き込み')
-                if st.form_submit_button('書き込む'):
+
+            if 'countInForm' not in st.session_state: 
+                    st.session_state.countInForm = 0 #countInFormがsession_stateに追加されていない場合，0で初期化
+
+            form_ta_placeholder = st.empty()
+
+            col_clear, col_decide = st.columns([4,1])
+            
+            with col_clear:
+                if st.button("クリア"):
+                    st.session_state.countInForm += 1
+
+            talk = form_ta_placeholder.text_area('書き込み', value='', key=st.session_state.countInForm)
+
+            with col_decide:
+                if st.button('書き込む'):
                     if talk != "":
                         i = 0
                         while i < len(talk):
@@ -356,34 +432,75 @@ def main():
                     elif talk == "":
                         st.error("未入力です")
 
-                if st.form_submit_button('戻る'):
-                    pageFlag[0] = 0
-                    writingList.clear()
-                    password.clear()
+            if st.button('戻る',key=1):
+                pageFlag[0] = 0
+                writingList.clear()
+                password.clear()
+                st.experimental_rerun()
+
+            wks = gc.open('pyStreamlitBulletinboard').worksheet('シート2')
+            allWriteIn = wks.get_all_values()
+            print(allWriteIn)
+            print(allWriteIn[1][0])
+            writeInAmount = len(allWriteIn) - 1
+            print(writeInAmount)
+
+            selectedAllWriting = []
+            selectedAllWritingDate = []
+            for i in range(1,len(allWriteIn)):
+                if int(allWriteIn[i][0]) == int(selectedThread[0][4]):
+                    selectedAllWriting.append(allWriteIn[i][2])
+                    selectedAllWritingDate.append(allWriteIn[i][3])
+            print(selectedAllWriting)
+            print(selectedAllWritingDate)
+
+            html_style2 = """
+            <style>
+            #root > div:nth-child(1) > div > div > div > div > section.main.css-1v3fvcr.eknhn3m1 > div > div:nth-child(1) > div.css-1l3xw0p.e1tzin5v3 > div > div:nth-child(1) > div:nth-child(1) > div > div > button
+            {
+                margin-left: 85%;
+            }
+
+            #root > div:nth-child(1) > div > div > div > div > section.main.css-1v3fvcr.eknhn3m1 > div > div:nth-child(1) > div.css-1l3xw0p.e1tzin5v3 > div > div:nth-child(2) > div:nth-child(1) > div > div > button
+            {
+                margin-left: 25%;
+            }
+
+            #root > div:nth-child(1) > div > div > div > div > section.main.css-1v3fvcr.eknhn3m1 > div > div:nth-child(1) > div:nth-child(10) > div > button
+            {
+                margin-left: 91%;
+            }
+
+            #root > div:nth-child(1) > div > div > div > div > section.main.css-1v3fvcr.eknhn3m1 > div > div:nth-child(1) > div.css-1mg5w7t.epcbefy1 > div:nth-child(1) > div:nth-child(1) > div > div > button
+            {
+                margin-left: 83%;
+            }
+
+            #root > div:nth-child(1) > div > div > div > div > section.main.css-1v3fvcr.eknhn3m1 > div > div:nth-child(1) > div:nth-child(13) > div > button
+            {
+                margin-left: 91%;
+            }
+            </slyle>
+            """
+
+            st.markdown(html_style2,unsafe_allow_html=True)
+                
+            with st.form('inThread'):
+                if st.form_submit_button("再読み込み"):
+                    time.sleep(3)
                     st.experimental_rerun()
 
-                wks = gc.open('pyStreamlitBulletinboard').worksheet('シート2')
-                allWriteIn = wks.get_all_values()
-                print(allWriteIn)
-                print(allWriteIn[1][0])
-                writeInAmount = len(allWriteIn) - 1
-                print(writeInAmount)
-
-                selectedAllWriting = []
-                selectedAllWritingDate = []
-                for i in range(1,len(allWriteIn)):
-                    if int(allWriteIn[i][0]) == int(selectedThread[0][4]):
-                        selectedAllWriting.append(allWriteIn[i][2])
-                        selectedAllWritingDate.append(allWriteIn[i][3])
-                print(selectedAllWriting)
-                print(selectedAllWritingDate)
-                
                 for i in reversed(range(0,len(selectedAllWriting),1)):
                     stc.html("<hr>",None,9)
-                    st.info(selectedAllWriting[i])
-                    st.write("<span style='font-size: 10px;'>%s</span>"%selectedAllWritingDate[i],unsafe_allow_html=True)
 
-        if st.button('戻る'):
+                    col_date, col_info= st.columns([1,8])
+
+                    with col_date:
+                        st.write("<span style='font-size: 13px;'>%s</span>"%selectedAllWritingDate[i],unsafe_allow_html=True)
+                    with col_info:
+                        st.info(selectedAllWriting[i])
+
+        if st.button('戻る',key=2):
             pageFlag[0] = 0
             writingList.clear()
             password.clear()
