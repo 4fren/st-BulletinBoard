@@ -133,7 +133,7 @@ def main():
 
     gc = gspread.authorize(credentials2)
     
-    st.sidebar.write('匿名！ 登録なし！\n\nシンプルな掲示板サイトです。')
+    st.sidebar.write('匿名！ 登録なし！\n\nシンプルな掲示板サイト')
     
     if pageFlag[0] == 0:
         
